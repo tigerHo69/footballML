@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football ML | {{ comp_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --sidebar-width: 280px; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 1.5rem;
+            border-right: 1px solid rgba(0,0,0,0.1);
+            overflow-y: auto;
+            background: var(--bs-body-bg);
+            z-index: 1000;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .nav-link {
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            padding: 0.6rem 1rem;
+            color: var(--bs-body-color);
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--bs-primary);
+            color: white !important;
+        }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .theme-toggle { cursor: pointer; position: fixed; bottom: 20px; left: 20px; z-index: 1001; }
+        .prob-badge { font-weight: 600; font-size: 0.8rem; }
+        .table-container { max-height: 600px; overflow-y: auto; }
+        [data-bs-theme="dark"] .card { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle shadow-sm p-2 rounded-circle bg-body border" id="themeBtn">
+        <i class="bi bi-sun-fill" id="themeIcon"></i>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="d-flex align-items-center mb-4 px-2">
+            <i class="bi bi-trophy-fill text-primary fs-3 me-2"></i>
+            <h4 class="mb-0 fw-bold">Football ML</h4>
+        </div>
+        
+        <div class="small text-uppercase text-muted fw-bold mb-3 px-2">Competitions</div>
+        <div class="nav flex-column">
+            {% for code, name in all_comps.items() %}
+            <a class="nav-link d-flex align-items-center {{ 'active' if selected_comp == code else '' }}" href="/?comp={{ code }}">
+                <span class="me-auto">{{ name }}</span>
+                {% if selected_comp == code %}
+                <i class="bi bi-chevron-right ms-2"></i>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+
+        <div class="mt-5 p-3 rounded bg-primary-subtle border border-primary-subtle">
+            <small class="d-block fw-bold text-primary mb-1">Model Accuracy</small>
+            <div class="progress mb-2" style="height: 6px;">
+                <div class="progress-bar" style="width: 45%"></div>
+            </div>
+            <small class="text-muted" style="font-size: 0.75rem;">Training: XGBoost @ 45% Win Accuracy</small>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="fw-bold mb-0">{{ comp_name }}</h1>
+                <p class="text-muted">Machine Learning Seasonal Analysis & Predictions</p>
+            </div>
+            <div class="d-none d-lg-block text-end">
+                <span class="badge bg-success-subtle text-success border border-success-subtle p-2">
+                    <i class="bi bi-dot"></i> Live Data Ingested
+                </span>
+            </div>
+        </div>
+
+        {% if not simulations %}
+            <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
+                <div class="d-flex">
+                    <i class="bi bi-info-circle-fill fs-2 me-3"></i>
+                    <div>
+                        <h5 class="fw-bold">No Data for this League</h5>
+                        <p class="mb-0">This competition might be in off-season, or the data hasn't been ingested yet. Try selecting another league from the sidebar.</p>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+        
+        <div class="row g-4">
+            <!-- Left: Simulation Table -->
+            <div class="col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Projected Final Table</h5>
+                        <span class="text-muted small">Based on 500 Monte Carlo Runs</span>
+                    </div>
+                    <div class="card-body px-0">
+                        <div class="table-responsive table-container px-4">
+                            <table class="table table-hover align-middle">
+                                <thead class="text-muted small">
+                                    <tr>
+                                        <th>RANK</th>
+                                        <th>TEAM</th>
+                                        <th class="text-center">AVG PTS</th>
+                                        <th class="text-center">TITLE %</th>
+                                        <th class="text-center">TOP 4 %</th>
+                                        <th class="text-center">REL. %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team in simulations %}
+                                    <tr>
+                                        <td class="fw-bold">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="fw-bold">{{ team.team }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center fw-bold">{{ "%.1f"|format(team.avg_points) }}</td>
+                                        <td class="text-center">
+                                            <span class="badge rounded-pill {{ 'bg-warning text-dark' if team.prob_win > 0.1 else 'bg-light text-muted border' }}">
+                                                {{ "%.0f"|format(team.prob_win * 100) }}%
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <div class="progress flex-grow-1 mx-2" style="height: 4px; width: 60px;">
+                                                    <div class="progress-bar bg-primary" style="width: {{ team.prob_top4 * 100 }}%"></div>
+                                                </div>
+                                                <span class="small">{{ "%.0f"|format(team.prob_top4 * 100) }}%</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="text-{{ 'danger' if team.prob_relegation > 0.3 else 'muted' }} small">
+                                                {{ "%.0f"|format(team.prob_relegation * 100) }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Upcoming & Insights -->
+            <div class="col-xl-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0">Next Fixtures</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% if not upcoming %}
+                            <p class="text-muted small">No scheduled matches found for this period.</p>
+                        {% else %}
+                            {% for match in upcoming %}
+                            <div class="mb-4 border-bottom pb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted fw-bold">{{ match.date[:10] }}</span>
+                                    {% if match.prob_over_2_5 > 0.6 %}
+                                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-fire"></i> High Goals</span>
+                                    {% endif %}
+                                </div>
+                                <div class="row align-items-center g-2 mb-3">
+                                    <div class="col text-end fw-bold small">{{ match.home }}</div>
+                                    <div class="col-auto text-muted small px-3">VS</div>
+                                    <div class="col text-start fw-bold small">{{ match.away }}</div>
+                                </div>
+                                <div class="progress mb-2" style="height: 20px; border-radius: 4px;">
+                                    <div class="progress-bar bg-success" style="width: {{ match.prob_home * 100 }}%">{{ "%.0f"|format(match.prob_home * 100) }}%</div>
+                                    <div class="progress-bar bg-secondary-subtle text-dark" style="width: {{ match.prob_draw * 100 }}%">{{ "%.0f"|format(match.prob_draw * 100) }}%</div>
+                                    <div class="progress-bar bg-danger" style="width: {{ match.prob_away * 100 }}%">{{ "%.0f"|format(match.prob_away * 100) }}%</div>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted px-1" style="font-size: 0.7rem;">
+                                    <span>HOME WIN</span>
+                                    <span>DRAW</span>
+                                    <span>AWAY WIN</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card bg-primary text-white border-0">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-robot me-2"></i>ML Logic</h6>
+                        <p class="small mb-0 opacity-75">Our XGBoost model analyzes 5-game rolling point averages, goal differential trajectories, and venue advantage. Probabilities are normalized across 500 simulations to ensure consistency.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <script>
+        const themeBtn = document.getElementById('themeBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-bs-theme', newTheme);
+            themeIcon.className = newTheme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            html.setAttribute('data-bs-theme', savedTheme);
+            themeIcon.className = savedTheme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+        }
+    </script>
+</body>
+</html>

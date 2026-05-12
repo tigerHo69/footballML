@@ -1,0 +1,21 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Project Specific
+data/raw/
+data/processed/
+models/*.pkl
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store

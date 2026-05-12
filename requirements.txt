@@ -1,0 +1,9 @@
+requests
+pandas
+python-dotenv
+scikit-learn
+xgboost
+numpy
+matplotlib
+seaborn
+flask
