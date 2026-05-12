@@ -68,44 +68,32 @@ class Predictor:
             'prob_over_2_5': float(ou_prob)
         }
 
-    def predict_upcoming(self, comp_code, team_stats, raw_dir="data/raw"):
-        path = os.path.join(raw_dir, f"{comp_code}_matches.json")
-        if not os.path.exists(path):
-            return pd.DataFrame()
-            
-        with open(path, 'r') as f:
-            data = json.load(f)
+    def predict_upcoming(self, comp_code, team_stats, db_path="data/football.db"):
+        from football_ml.core.data.db_manager import DatabaseManager
+        db = DatabaseManager(db_path)
         
-        upcoming = []
-        for m in data.get('matches', []):
-            if m['status'] in ['SCHEDULED', 'TIMED']:
-                home = m['homeTeam']['name']
-                away = m['awayTeam']['name']
-                
-                if home in team_stats.index and away in team_stats.index:
-                    h = team_stats.loc[home]
-                    a = team_stats.loc[away]
+        query = '''
+            SELECT m.id, m.utc_date as date, t1.name as home, t2.name as away
+            FROM matches m
+            JOIN teams t1 ON m.home_team_id = t1.id
+            JOIN teams t2 ON m.away_team_id = t2.id
+            WHERE m.competition_code = ? AND m.status IN ('SCHEDULED', 'TIMED')
+        '''
+        with db.get_connection() as conn:
+            df_upcoming = pd.read_sql_query(query, conn, params=(comp_code,))
+            
+        if df_upcoming.empty:
+            return pd.DataFrame()
+        
+        results = []
+        for _, row in df_upcoming.iterrows():
+            home, away = row['home'], row['away']
+            
+            if home in team_stats.index and away in team_stats.index:
+                pred = self.predict_single_match(home, away, team_stats)
+                if pred:
+                    pred['id'] = row['id']
+                    pred['date'] = row['date']
+                    results.append(pred)
                     
-                    features = [
-                        h['rolling_pts'], a['rolling_pts'],
-                        h['rolling_gf'], h['rolling_ga'],
-                        a['rolling_gf'], a['rolling_ga'],
-                        h['home_v_form'], a['away_v_form'],
-                        h['elo'], a['elo']
-                    ]
-                    
-                    probs = self.m_out.predict_proba([features])[0]
-                    ou_prob = self.m_ou.predict_proba([features])[0][1]
-                    
-                    upcoming.append({
-                        'id': m['id'],
-                        'date': m['utcDate'],
-                        'home': home,
-                        'away': away,
-                        'prob_home': float(probs[0]),
-                        'prob_draw': float(probs[1]),
-                        'prob_away': float(probs[2]),
-                        'prob_over_2_5': float(ou_prob)
-                    })
-                    
-        return pd.DataFrame(upcoming)
+        return pd.DataFrame(results)

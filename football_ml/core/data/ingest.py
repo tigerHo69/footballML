@@ -30,11 +30,6 @@ class DataIngestor:
             print(f"Error {response.status_code}: {response.text}")
             return None
 
-    def save_json(self, data, filename):
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=4)
-
     def _save_to_db(self, comp_code, standings_data, matches_data):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
@@ -90,27 +85,25 @@ class DataIngestor:
                     ))
             conn.commit()
 
-    def ingest_competition(self, comp_code, raw_dir="data/raw"):
+    def ingest_competition(self, comp_code):
         print(f"\nProcessing Competition: {comp_code}")
         
         # 1. Fetch Standings
         standings = self.fetch_data(f"competitions/{comp_code}/standings")
         if standings:
-            self.save_json(standings, os.path.join(raw_dir, f"{comp_code}_standings.json"))
             time.sleep(6)
             
         # 2. Fetch Matches
         matches = self.fetch_data(f"competitions/{comp_code}/matches")
         if matches:
-            self.save_json(matches, os.path.join(raw_dir, f"{comp_code}_matches.json"))
             time.sleep(6)
             
         # 3. Save to DB
         self._save_to_db(comp_code, standings, matches)
 
-    def ingest_all(self, raw_dir="data/raw"):
+    def ingest_all(self):
         if not self.api_key:
             raise ValueError("API_KEY is required for ingestion")
 
         for comp in FREE_COMPETITIONS:
-            self.ingest_competition(comp, raw_dir)
+            self.ingest_competition(comp)
