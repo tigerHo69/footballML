@@ -9,12 +9,12 @@ This project is a Machine Learning pipeline for predicting football match outcom
 - **Key Technologies:** Python 3, Flask, XGBoost, Pandas, Scikit-learn.
 
 ## Directory Structure
-- `data/raw/`: Raw JSON files fetched from the API (Standings and Matches).
-- `data/processed/`: Structured CSV file (`match_features.csv`) with engineered rolling features.
-- `scripts/`: Modular Python scripts for the ML lifecycle.
-- `models/`: Pickled XGBoost models (`outcome_model.pkl`, `over_under_model.pkl`).
-- `templates/`: HTML templates for the Flask dashboard.
-- `notebooks/`: Directory for Jupyter notebooks (exploratory analysis).
+- `football_ml/core/`: Core business logic (Data, ML, Inference).
+- `football_ml/cli/`: Command-line entry points.
+- `football_ml/web/`: Flask web application.
+- `data/raw/`: Raw JSON files fetched from the API.
+- `data/processed/`: Structured CSV file (`match_features.csv`).
+- `models/`: Pickled XGBoost models.
 
 ## Building and Running
 
@@ -24,11 +24,11 @@ This project is a Machine Learning pipeline for predicting football match outcom
 - Install dependencies: `pip3 install -r requirements.txt`
 
 ### 2. Execution Pipeline
-Run these scripts in order to set up the environment:
-1.  **Ingest Data:** `python3 scripts/ingest_data.py` (Fetches data for 12 free-tier leagues).
-2.  **Process Features:** `python3 scripts/process_data.py` (Calculates rolling stats and prepares CSV).
-3.  **Train Models:** `python3 scripts/train_models.py` (Trains XGBoost classifiers).
-4.  **Start Dashboard:** `python3 app.py` (Starts Flask on port 5001).
+Run these modules in order:
+1.  **Ingest Data:** `python3 -m football_ml.cli.ingest`
+2.  **Process Features:** `python3 -m football_ml.cli.process`
+3.  **Train Models:** `python3 -m football_ml.cli.train`
+4.  **Start Dashboard:** `python3 -m football_ml.web.app` (Starts Flask on port 5001).
 
 ## Development Conventions
 

@@ -11,27 +11,23 @@ The primary goal of this project is to build a reliable predictive model for foo
 
 ## 🏗️ Architecture
 
-The project is designed as a modular 4-stage pipeline:
+The project is organized into a clean, functional package structure to separate concerns and ensure maintainability:
 
-### 1. Data Ingestion (`scripts/ingest_data.py`)
-- **Source:** REST API v4 from `football-data.org`.
-- **Logic:** Fetches standings and match fixtures for 12 major competitions.
-- **Resilience:** Implements rate-limiting (10 req/min) and automatic retry logic.
+- **`football_ml/core/`**: The core business logic.
+    - **`data/`**: Handles ingestion from the Football-Data.org API and complex rolling feature engineering using Pandas.
+    - **`ml/`**: Manages the training pipeline for XGBoost models, including temporal splitting and evaluation.
+    - **`inference/`**: High-performance prediction engines and Monte Carlo simulators for seasonal projections.
+- **`football_ml/cli/`**: Lightweight command-line wrappers for every stage of the pipeline.
+- **`football_ml/web/`**: A modern Flask-powered dashboard for data visualization.
 
-### 2. Feature Engineering (`scripts/process_data.py`)
-- **Temporal Safety:** Uses a `shift()` based rolling window (5 games) to ensure no "future data" leaks into training.
-- **Engineered Metrics:** 
-  - **Form:** Points per game over the last 5 matches.
-  - **Attack/Defense Strength:** Rolling average of goals scored vs. goals conceded.
-  - **Venue Bias:** Performance metrics weighted by Home vs. Away status.
+---
 
-### 3. Model Training (`scripts/train_models.py`)
-- **Algorithms:** Employs **XGBoost Classifiers** for multi-class classification (H/D/A) and binary classification (Over/Under 2.5 goals).
-- **Validation:** Uses a temporal hold-out set (the final 20% of chronologically ordered matches) for realistic performance evaluation.
+## ✨ Key Features
 
-### 4. Simulation & Inference (`app.py` & `scripts/predict.py`)
-- **Monte Carlo Engine:** Runs 500+ stochastic simulations per league to project final point distributions.
-- **Dashboard:** A Flask-powered web UI with a responsive Light/Dark mode, visual match odds, and probability-based league tables.
+- **Temporal Feature Safety:** All rolling features (Form, Goals For, Goals Against) are calculated using a `shift()` window to prevent data leakage. Matches are only predicted using stats available *prior* to kickoff.
+- **Monte Carlo Season Simulation:** Instead of simple point projections, the engine runs 500+ stochastic simulations per league to generate a probability distribution of final rankings.
+- **Multi-Status Prediction:** Supports both `SCHEDULED` and `TIMED` match statuses to ensure accurate predictions throughout the season's varying scheduling phases.
+- **Responsive Dashboard:** A full-featured web UI with Bootstrap 5, featuring real-time prediction badges, win/draw/loss probability bars, and dark mode support.
 
 ---
 
@@ -53,29 +49,31 @@ pip install -r requirements.txt
 ```
 
 ### 4. Running the Pipeline
-Run the scripts in order to build the local database and train the models:
+Run the modules in order to build the local database and train the models:
 ```bash
 # Fetch fresh data
-python3 scripts/ingest_data.py
+python3 -m football_ml.cli.ingest
 
 # Generate features
-python3 scripts/process_data.py
+python3 -m football_ml.cli.process
 
 # Train XGBoost models
-python3 scripts/train_models.py
+python3 -m football_ml.cli.train
 
 # Launch the Dashboard
-python3 app.py
+python3 -m football_ml.web.app
 ```
 
 ---
 
 ## 📊 Directory Structure
+- `football_ml/`: Main application package.
+  - `core/`: Shared logic for data, ML, and inference.
+  - `cli/`: Command-line wrappers.
+  - `web/`: Web application and assets.
 - `data/raw/`: Raw API JSON response storage.
 - `data/processed/`: Engineered CSV datasets.
 - `models/`: Pickled XGBoost model files.
-- `scripts/`: Modular Python logic for each pipeline stage.
-- `templates/`: HTML/Bootstrap UI for the dashboard.
 - `GEMINI.md`: Comprehensive technical instructions for AI agents.
 
 ---

@@ -13,6 +13,7 @@ __pycache__/
 # Project Specific
 data/raw/
 data/processed/
+data/*.db
 models/*.pkl
 
 # IDEs
