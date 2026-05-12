@@ -85,7 +85,7 @@ class DataProcessor:
         
         return df
 
-    def process_all_and_save(self, processed_path="data/processed/match_features.csv"):
+    def process_all_and_save(self):
         df = self.load_finished_matches()
         if df.empty:
             print("No finished matches found in database.")
@@ -102,10 +102,6 @@ class DataProcessor:
         final_df['over_2_5'] = (final_df['total_goals'] > 2.5).astype(int)
         
         final_df = final_df.dropna(subset=['home_form', 'away_form'])
-        
-        # Save to CSV for backward compatibility
-        os.makedirs(os.path.dirname(processed_path), exist_ok=True)
-        final_df.to_csv(processed_path, index=False)
         
         # Save to SQL Features table
         with self.db.get_connection() as conn:
@@ -142,5 +138,5 @@ class DataProcessor:
                 ))
             conn.commit()
             
-        print(f"Saved {len(final_df)} rows to {processed_path} and SQLite.")
+        print(f"Saved {len(final_df)} rows to SQLite.")
         return final_df

@@ -1,17 +1,26 @@
-import json
 import numpy as np
 import pandas as pd
+from football_ml.core.data.db_manager import DatabaseManager
 
 class SeasonSimulator:
-    def simulate(self, upcoming_preds, current_standings_file, num_simulations=1000):
-        with open(current_standings_file, 'r') as f:
-            standings_data = json.load(f)
+    def __init__(self, db_path="data/football.db"):
+        self.db = DatabaseManager(db_path)
+
+    def simulate(self, comp_code, upcoming_preds, num_simulations=1000):
+        # Fetch current points from SQL
+        query = '''
+            SELECT t.name, s.points
+            FROM standings s
+            JOIN teams t ON s.team_id = t.id
+            WHERE s.competition_code = ?
+        '''
+        with self.db.get_connection() as conn:
+            df_standings = pd.read_sql_query(query, conn, params=(comp_code,))
         
-        initial_points = {}
-        for table in standings_data.get('standings', []):
-            if table['type'] == 'TOTAL':
-                for entry in table['table']:
-                    initial_points[entry['team']['name']] = entry['points']
+        if df_standings.empty:
+            return pd.DataFrame()
+
+        initial_points = dict(zip(df_standings['name'], df_standings['points']))
         
         teams = list(initial_points.keys())
         rank_counts = {team: np.zeros(len(teams) + 1) for team in teams}

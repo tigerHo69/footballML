@@ -55,9 +55,8 @@ def index():
     upcoming = predictor.predict_upcoming(selected_comp, team_stats)
     
     sim_results = pd.DataFrame()
-    standings_path = f"data/raw/{selected_comp}_standings.json"
-    if os.path.exists(standings_path) and not upcoming.empty:
-        sim_results = simulator.simulate(upcoming, standings_path, num_simulations=500)
+    if not upcoming.empty:
+        sim_results = simulator.simulate(selected_comp, upcoming, num_simulations=500)
     
     # Fetch historical data for charts from SQL
     chart_data = {}

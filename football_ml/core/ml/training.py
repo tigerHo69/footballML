@@ -36,8 +36,18 @@ class ModelTrainer:
         study.optimize(objective, n_trials=20)
         return study.best_params
 
-    def train(self, processed_csv="data/processed/match_features.csv"):
-        df = pd.read_csv(processed_csv)
+    def train(self, db_path="data/football.db"):
+        from football_ml.core.data.db_manager import DatabaseManager
+        db = DatabaseManager(db_path)
+        
+        query = '''
+            SELECT mf.*, m.utc_date as utcDate
+            FROM match_features mf
+            JOIN matches m ON mf.match_id = m.id
+        '''
+        with db.get_connection() as conn:
+            df = pd.read_sql_query(query, conn)
+            
         df = df.sort_values('utcDate')
         
         X = df[FEATURES]
