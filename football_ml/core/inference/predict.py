@@ -41,6 +41,33 @@ class Predictor:
         
         return latest_stats.fillna(0)
 
+    def predict_single_match(self, home_team, away_team, team_stats):
+        if home_team not in team_stats.index or away_team not in team_stats.index:
+            return None
+            
+        h = team_stats.loc[home_team]
+        a = team_stats.loc[away_team]
+        
+        features = [
+            h['rolling_pts'], a['rolling_pts'],
+            h['rolling_gf'], h['rolling_ga'],
+            a['rolling_gf'], a['rolling_ga'],
+            h['home_v_form'], a['away_v_form'],
+            h['elo'], a['elo']
+        ]
+        
+        probs = self.m_out.predict_proba([features])[0]
+        ou_prob = self.m_ou.predict_proba([features])[0][1]
+        
+        return {
+            'home': home_team,
+            'away': away_team,
+            'prob_home': float(probs[0]),
+            'prob_draw': float(probs[1]),
+            'prob_away': float(probs[2]),
+            'prob_over_2_5': float(ou_prob)
+        }
+
     def predict_upcoming(self, comp_code, team_stats, raw_dir="data/raw"):
         path = os.path.join(raw_dir, f"{comp_code}_matches.json")
         if not os.path.exists(path):

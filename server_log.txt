@@ -1,0 +1,8 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.0.106:5001
+Press CTRL+C to quit
+127.0.0.1 - - [12/May/2026 11:30:49] "GET /match/538147?comp=PL HTTP/1.1" 200 -
